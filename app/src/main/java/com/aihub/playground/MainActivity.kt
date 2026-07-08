@@ -82,8 +82,12 @@ class MainActivity : AppCompatActivity() {
     private fun prepareModel() {
         lifecycleScope.launch {
             try {
+                // 通常はギャラリーが DL 済み。未取得で直接起動された場合はここで取得する。
+                val resolved = ModelDownloader.ensure(this@MainActivity, entry) { p ->
+                    val msg = if (p < 0) "ダウンロード中…" else "ダウンロード中 ${(p * 100).toInt()}%"
+                    runOnUiThread { setStatus(msg) }
+                }
                 setStatus("推論エンジン初期化中…")
-                val resolved = ModelDownloader.resolve(this@MainActivity, entry)
                 val t = withContext(Dispatchers.Default) {
                     VisionTask.create(this@MainActivity, entry, resolved.modelFile, resolved.labelsFile)
                 }
