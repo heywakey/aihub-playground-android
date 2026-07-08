@@ -3,6 +3,7 @@ package com.aihub.playground.vision
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
+import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import java.io.File
 import java.nio.ByteBuffer
@@ -57,6 +58,10 @@ class LiteRtEngine private constructor(
             return s[1] // H
         }
 
+    /** 入力が float32 か(uint8 量子化モデルでなければ true)。 */
+    val inputIsFloat: Boolean
+        get() = interpreter.getInputTensor(0).dataType() == DataType.FLOAT32
+
     /**
      * ピクセル値(0-255)→ 入力テンソルの量子化値(uint8)への LUT。
      * real = pixel/255(value_range[0,1])とし q = round(real/scale + zp) をクランプ。
@@ -73,23 +78,34 @@ class LiteRtEngine private constructor(
     }
 
     /**
-     * [square] (inputSize×inputSize の ARGB Bitmap)を LUT で uint8 RGB に詰める。
-     * [out] は inputSize*inputSize*3 の direct ByteBuffer(再利用)。
+     * [square] (inputSize×inputSize の ARGB Bitmap)を入力バッファに詰める。
+     * uint8 量子化モデルは LUT で再量子化、float32 モデルは pixel/255 を書く。
+     * [out] は newInputBuffer() で確保した direct ByteBuffer(再利用)。
      */
     fun fillInput(square: Bitmap, out: ByteBuffer, pixels: IntArray, lut: ByteArray) {
         val size = inputSize
         out.rewind()
         square.getPixels(pixels, 0, size, 0, 0, size, size)
-        for (p in pixels) {
-            out.put(lut[(p shr 16) and 0xFF]) // R
-            out.put(lut[(p shr 8) and 0xFF])  // G
-            out.put(lut[p and 0xFF])          // B
+        if (inputIsFloat) {
+            for (p in pixels) {
+                out.putFloat(((p shr 16) and 0xFF) / 255f)
+                out.putFloat(((p shr 8) and 0xFF) / 255f)
+                out.putFloat((p and 0xFF) / 255f)
+            }
+        } else {
+            for (p in pixels) {
+                out.put(lut[(p shr 16) and 0xFF])
+                out.put(lut[(p shr 8) and 0xFF])
+                out.put(lut[p and 0xFF])
+            }
         }
         out.rewind()
     }
 
-    fun newInputBuffer(): ByteBuffer =
-        ByteBuffer.allocateDirect(inputSize * inputSize * 3).order(ByteOrder.nativeOrder())
+    fun newInputBuffer(): ByteBuffer {
+        val bytesPerCh = if (inputIsFloat) 4 else 1
+        return ByteBuffer.allocateDirect(inputSize * inputSize * 3 * bytesPerCh).order(ByteOrder.nativeOrder())
+    }
 
     override fun close() {
         interpreter.close()

@@ -2,6 +2,7 @@ package com.aihub.playground.vision
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import org.tensorflow.lite.DataType
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -22,10 +23,13 @@ class DepthTask(
     private val outShape = interp.getOutputTensor(0).shape() // [1,H,W,1] or [1,H,W]
     private val outH = outShape[1]
     private val outW = outShape[2]
+    private val outIsFloat = interp.getOutputTensor(0).dataType() == DataType.FLOAT32
 
     private val inputBuf: ByteBuffer = engine.newInputBuffer()
     private val inPixels = IntArray(inputSize * inputSize)
-    private val depthOut = ByteBuffer.allocateDirect(outH * outW).order(ByteOrder.nativeOrder())
+    private val depthOut = ByteBuffer.allocateDirect(outH * outW * if (outIsFloat) 4 else 1)
+        .order(ByteOrder.nativeOrder())
+    private val depthVals = FloatArray(outH * outW)
     private val colorPixels = IntArray(outH * outW)
     private val colored = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
     private val cmap = turboColormap()
@@ -39,15 +43,17 @@ class DepthTask(
         interp.run(inputBuf, depthOut)
         depthOut.rewind()
 
-        var mn = 255; var mx = 0
+        // 相対深度なので dtype に依らずフレーム内 min-max 正規化してカラーマップ
+        var mn = Float.MAX_VALUE; var mx = -Float.MAX_VALUE
         for (i in 0 until outH * outW) {
-            val v = depthOut.get(i).toInt() and 0xFF
+            val v = if (outIsFloat) depthOut.getFloat(i * 4) else (depthOut.get(i).toInt() and 0xFF).toFloat()
+            depthVals[i] = v
             if (v < mn) mn = v; if (v > mx) mx = v
         }
-        val range = (mx - mn).coerceAtLeast(1)
+        val range = (mx - mn).coerceAtLeast(1e-6f)
         for (i in 0 until outH * outW) {
-            val v = depthOut.get(i).toInt() and 0xFF
-            colorPixels[i] = cmap[((v - mn) * 255 / range).coerceIn(0, 255)]
+            val n = ((depthVals[i] - mn) / range * 255f).toInt().coerceIn(0, 255)
+            colorPixels[i] = cmap[n]
         }
         colored.setPixels(colorPixels, 0, outW, 0, 0, outW, outH)
         return VisionResult.Depth(colored)

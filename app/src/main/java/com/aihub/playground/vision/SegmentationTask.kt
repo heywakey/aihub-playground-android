@@ -21,17 +21,20 @@ class SegmentationTask(
     private val inputSize = engine.inputSize
     private val lut = engine.buildInputLut()
 
-    private val outShape = interp.getOutputTensor(0).shape() // [1,H,W]
+    // 出力は [1,H,W](クラスID直: DeepLab)か [1,H,W,C](ロジット: Segformer/FFNet)。
+    private val outShape = interp.getOutputTensor(0).shape()
     private val outH = outShape[1]
     private val outW = outShape[2]
+    private val numChannels = if (outShape.size >= 4) outShape[3] else 1
+    private val isLogits = numChannels > 1
 
     private val inputBuf: ByteBuffer = engine.newInputBuffer()
     private val inPixels = IntArray(inputSize * inputSize)
-    private val maskOut = ByteBuffer.allocateDirect(outH * outW).order(ByteOrder.nativeOrder())
+    private val maskOut = ByteBuffer.allocateDirect(outH * outW * numChannels).order(ByteOrder.nativeOrder())
     private val colorPixels = IntArray(outH * outW)
     private val colored = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
 
-    private val palette = vocPalette(labels.size.coerceAtLeast(21))
+    private val palette = vocPalette(maxOf(labels.size, numChannels, 21))
 
     override fun run(upright: Bitmap): VisionResult {
         val square = ImageUtils.resizeStretch(upright, inputSize)
@@ -44,7 +47,7 @@ class SegmentationTask(
 
         val present = HashSet<Int>()
         for (i in 0 until outH * outW) {
-            val cls = maskOut.get(i).toInt() and 0xFF
+            val cls = if (isLogits) argmaxAt(i) else (maskOut.get(i).toInt() and 0xFF)
             colorPixels[i] = if (cls == 0) Color.TRANSPARENT else {
                 present.add(cls); palette[cls % palette.size]
             }
@@ -52,6 +55,17 @@ class SegmentationTask(
         colored.setPixels(colorPixels, 0, outW, 0, 0, outW, outH)
         val legend = present.sorted().map { (labels.getOrElse(it) { "class$it" }) to palette[it % palette.size] }
         return VisionResult.Segmentation(colored, legend)
+    }
+
+    /** ピクセル i の [numChannels] 個のロジット(uint8)から argmax。 */
+    private fun argmaxAt(i: Int): Int {
+        val base = i * numChannels
+        var best = 0; var bestV = -1
+        for (c in 0 until numChannels) {
+            val v = maskOut.get(base + c).toInt() and 0xFF
+            if (v > bestV) { bestV = v; best = c }
+        }
+        return best
     }
 
     override fun close() = engine.close()

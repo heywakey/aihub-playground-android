@@ -109,16 +109,24 @@ class OverlayView @JvmOverloads constructor(
             r.sourceRect.right * xf.scale + xf.dx, r.sourceRect.bottom * xf.scale + xf.dy,
         )
         canvas.drawRect(srcRectF, srcPaint)
-        // 拡大結果を右下にインセット表示
-        val side = (minOf(width, height) * 0.5f)
-        val margin = 24f
-        dstRect.set((width - side - margin).toInt(), (height - side - margin).toInt(),
-            (width - margin).toInt(), (height - margin).toInt())
-        canvas.drawBitmap(r.upscaled, null, dstRect, maskPaint)
+
+        // 下部に「バイリニア | SR」の左右比較インセット(同一クロップ・同一表示サイズ)
+        val margin = 20f
+        val gap = 8f
+        val paneW = (width - margin * 2 - gap) / 2f
+        val paneH = paneW // 正方
+        val top = height - paneH - margin
+        drawPane(canvas, r.bilinear, margin, top, paneW, paneH, "bilinear ×4")
+        drawPane(canvas, r.upscaled, margin + paneW + gap, top, paneW, paneH, "SR ×4")
+    }
+
+    private fun drawPane(canvas: Canvas, bmp: android.graphics.Bitmap,
+                         x: Float, y: Float, w: Float, h: Float, caption: String) {
+        dstRect.set(x.toInt(), y.toInt(), (x + w).toInt(), (y + h).toInt())
+        canvas.drawBitmap(bmp, null, dstRect, maskPaint)
         canvas.drawRect(RectF(dstRect), insetBorder)
-        val cap = "super-resolved"
-        canvas.drawRect(dstRect.left.toFloat(), dstRect.top - 44f,
-            dstRect.left + textPaint.measureText(cap) + 16f, dstRect.top.toFloat(), textBgPaint)
-        canvas.drawText(cap, dstRect.left + 8f, dstRect.top - 10f, textPaint)
+        val tw = textPaint.measureText(caption)
+        canvas.drawRect(x, y, x + tw + 16f, y + 44f, textBgPaint)
+        canvas.drawText(caption, x + 8f, y + 32f, textPaint)
     }
 }

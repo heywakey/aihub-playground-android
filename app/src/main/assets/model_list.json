@@ -14,7 +14,7 @@
     "input": { "size": [640, 640], "norm": "0-1" }
   },
   {
-    "_note": "画像分類。出力 class_logits[1,1000] uint8(scale0.17 zp63)。dequant→softmax→top5。ラベルは ImageNet 1000。",
+    "_note": "画像分類(CNN)。class_logits[1,1000] uint8 → dequant→softmax→top5。ImageNet。",
     "id": "mobilenet-v2-w8a8",
     "displayName": "MobileNet-v2",
     "category": "画像分類",
@@ -28,7 +28,35 @@
     "input": { "size": [224, 224], "norm": "0-1" }
   },
   {
-    "_note": "セマンティックセグメンテーション(VOC 21クラス)。出力 mask[1,520,520] uint8 = 画素ごとのクラスID(量子化なし)。",
+    "_note": "画像分類(Transformer)。ViT。class_logits[1,1000] uint8。ClassificationTask にドロップイン。73MB。",
+    "id": "vit-w8a8",
+    "displayName": "ViT (Transformer)",
+    "category": "画像分類",
+    "modelName": "qualcomm/ViT",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/vit/releases/v0.57.1/vit-tflite-w8a8.zip",
+    "modelFile": "vit-tflite-w8a8/vit.tflite",
+    "labelsFile": "vit-tflite-w8a8/labels.txt",
+    "type": "classification",
+    "runtime": "litert_qnn",
+    "license": "Apache-2.0",
+    "input": { "size": [224, 224], "norm": "0-1" }
+  },
+  {
+    "_note": "画像分類(CNN)。ResNet50。class_logits[1,1000] uint8。",
+    "id": "resnet50-w8a8",
+    "displayName": "ResNet50",
+    "category": "画像分類",
+    "modelName": "qualcomm/ResNet50",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/resnet50/releases/v0.57.1/resnet50-tflite-w8a8.zip",
+    "modelFile": "resnet50-tflite-w8a8/resnet50.tflite",
+    "labelsFile": "resnet50-tflite-w8a8/labels.txt",
+    "type": "classification",
+    "runtime": "litert_qnn",
+    "license": "Apache-2.0",
+    "input": { "size": [224, 224], "norm": "0-1" }
+  },
+  {
+    "_note": "セグメンテーション(CNN, VOC 21クラス)。出力 mask[1,520,520] uint8 = クラスID直(argmax不要)。",
     "id": "deeplabv3-mobilenet-w8a8",
     "displayName": "DeepLabV3+ MobileNet",
     "category": "セグメンテーション",
@@ -42,9 +70,22 @@
     "input": { "size": [520, 520], "norm": "0-1" }
   },
   {
-    "_note": "超解像 4x。入力 128x128 → 出力 512x512x3 uint8(scale 1/255)。中央クロップを拡大してインセット表示。",
+    "_note": "セグメンテーション(Transformer, ADE20K 150クラス)。出力 class_logits[1,128,128,150] uint8 → 画素ごと argmax。ラベル同梱なし。",
+    "id": "segformer-base-w8a8",
+    "displayName": "SegFormer (Transformer)",
+    "category": "セグメンテーション",
+    "modelName": "qualcomm/Segformer-Base",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/segformer_base/releases/v0.57.1/segformer_base-tflite-w8a8.zip",
+    "modelFile": "segformer_base-tflite-w8a8/segformer_base.tflite",
+    "type": "segmentation",
+    "runtime": "litert_qnn",
+    "license": "Apache-2.0",
+    "input": { "size": [512, 512], "norm": "0-1" }
+  },
+  {
+    "_note": "超解像 4x(軽量)。128x128 → 512x512x3 uint8。",
     "id": "xlsr-w8a8",
-    "displayName": "XLSR (Super Resolution)",
+    "displayName": "XLSR",
     "category": "超解像",
     "modelName": "qualcomm/XLSR",
     "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/xlsr/releases/v0.57.1/xlsr-tflite-w8a8.zip",
@@ -55,9 +96,35 @@
     "input": { "size": [128, 128], "norm": "0-1" }
   },
   {
-    "_note": "単眼深度推定(MiDaS)。入力 256x256(入力 scale 0.00487 zp24, 要再量子化)。出力 depth[1,256,256,1] uint8。相対深度なので min-max 正規化してカラーマップ。",
+    "_note": "超解像 4x(GAN, 高品質・重め)。Real-ESRGAN。128x128 → 512x512x3 uint8。",
+    "id": "real-esrgan-x4-w8a8",
+    "displayName": "Real-ESRGAN x4",
+    "category": "超解像",
+    "modelName": "qualcomm/Real-ESRGAN-x4plus",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/real_esrgan_x4plus/releases/v0.57.1/real_esrgan_x4plus-tflite-w8a8.zip",
+    "modelFile": "real_esrgan_x4plus-tflite-w8a8/real_esrgan_x4plus.tflite",
+    "type": "superres",
+    "runtime": "litert_qnn",
+    "license": "Apache-2.0",
+    "input": { "size": [128, 128], "norm": "0-1" }
+  },
+  {
+    "_note": "超解像 4x(中品質)。QuickSRNet Large。128x128 → 512x512x3 uint8。",
+    "id": "quicksrnet-large-w8a8",
+    "displayName": "QuickSRNet Large",
+    "category": "超解像",
+    "modelName": "qualcomm/QuickSRNetLarge",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/quicksrnetlarge/releases/v0.57.1/quicksrnetlarge-tflite-w8a8.zip",
+    "modelFile": "quicksrnetlarge-tflite-w8a8/quicksrnetlarge.tflite",
+    "type": "superres",
+    "runtime": "litert_qnn",
+    "license": "Apache-2.0",
+    "input": { "size": [128, 128], "norm": "0-1" }
+  },
+  {
+    "_note": "深度推定(CNN)。MiDaS v2。入力 scale 0.00487 zp24。出力 depth[1,256,256,1] uint8。",
     "id": "midas-v2-w8a8",
-    "displayName": "MiDaS v2 (Depth)",
+    "displayName": "MiDaS v2",
     "category": "深度推定",
     "modelName": "qualcomm/Midas-V2",
     "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/midas/releases/v0.57.1/midas-tflite-w8a8.zip",
@@ -66,5 +133,18 @@
     "runtime": "litert_qnn",
     "license": "MIT",
     "input": { "size": [256, 256], "norm": "0-1" }
+  },
+  {
+    "_note": "深度推定(Transformer, DINOv2ベース)。Depth-Anything V2。float32 モデル(518x518)。87MB。NPU 実行は fp16。",
+    "id": "depth-anything-v2-float",
+    "displayName": "Depth-Anything V2 (Transformer)",
+    "category": "深度推定",
+    "modelName": "qualcomm/Depth-Anything-V2",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/depth_anything_v2/releases/v0.57.1/depth_anything_v2-tflite-float.zip",
+    "modelFile": "depth_anything_v2-tflite-float/depth_anything_v2.tflite",
+    "type": "depth",
+    "runtime": "litert_qnn",
+    "license": "Apache-2.0",
+    "input": { "size": [518, 518], "norm": "0-1" }
   }
 ]

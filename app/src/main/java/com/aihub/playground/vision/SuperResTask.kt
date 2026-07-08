@@ -42,6 +42,8 @@ class SuperResTask(
             patch.recycle(); patch = scaled
         }
         engine.fillInput(patch, inputBuf, inPixels, lut)
+        // 同じ入力パッチを出力解像度へ単純(バイリニア)拡大して比較対象にする
+        val bilinear = Bitmap.createScaledBitmap(patch, outW, outH, true)
         patch.recycle()
 
         outBuf.rewind()
@@ -60,7 +62,7 @@ class SuperResTask(
         outBitmap.setPixels(outPixels, 0, outW, 0, 0, outW, outH)
 
         val srcRect = RectF(left.toFloat(), top.toFloat(), (left + cropW).toFloat(), (top + cropH).toFloat())
-        return VisionResult.SuperRes(outBitmap, srcRect, upright.width, upright.height)
+        return VisionResult.SuperRes(outBitmap, bilinear, srcRect, upright.width, upright.height)
     }
 
     /** real=q*scale∈[0,1] を 0..255 の画素へ。scale が 1/255 相当なら生値。 */

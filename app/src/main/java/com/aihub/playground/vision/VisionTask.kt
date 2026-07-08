@@ -25,10 +25,10 @@ sealed class VisionResult {
     data class Depth(val colored: Bitmap) : VisionResult()
 
     /**
-     * 超解像: 中央クロップを拡大した画像。プレビュー隅にインセット表示し、
-     * 元クロップ領域を [sourceRect](フレーム座標)として枠表示する。
+     * 超解像: 中央クロップを [upscaled](SR)と [bilinear](単純拡大)の両方に拡大し、
+     * 左右比較でインセット表示する。元クロップ領域を [sourceRect](フレーム座標)で枠表示。
      */
-    data class SuperRes(val upscaled: Bitmap, val sourceRect: android.graphics.RectF,
+    data class SuperRes(val upscaled: Bitmap, val bilinear: Bitmap, val sourceRect: android.graphics.RectF,
                         val frameW: Int, val frameH: Int) : VisionResult()
 }
 
@@ -41,7 +41,8 @@ interface VisionTask : AutoCloseable {
     companion object {
         fun create(context: Context, entry: CatalogEntry, modelFile: File, labelsFile: File?): VisionTask {
             val engine = LiteRtEngine.create(context, modelFile)
-            val labels = labelsFile?.readLines()?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+            val labels = labelsFile?.takeIf { it.exists() }
+                ?.readLines()?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
             return when (entry.type) {
                 TaskType.DETECTION -> DetectionTask(engine, labels, entry.displayName)
                 TaskType.CLASSIFICATION -> ClassificationTask(engine, labels, entry.displayName)
