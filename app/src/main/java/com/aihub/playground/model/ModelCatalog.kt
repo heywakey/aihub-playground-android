@@ -16,6 +16,8 @@ import kotlinx.serialization.json.Json
 data class CatalogEntry(
     val id: String,
     val displayName: String,
+    /** 日本語のカテゴリ名(ギャラリー表示用)。未指定なら type から導出 */
+    val category: String? = null,
     /** 出自の HuggingFace リポジトリ名(例: qualcomm/Yolo-X)。表示・出典用 */
     val modelName: String,
     /** モデル一式 zip の直接ダウンロード URL */

@@ -20,9 +20,8 @@ import com.aihub.playground.databinding.ActivityMainBinding
 import com.aihub.playground.model.CatalogEntry
 import com.aihub.playground.model.ModelCatalog
 import com.aihub.playground.model.ModelDownloader
-import com.aihub.playground.model.TaskType
 import com.aihub.playground.vision.ImageUtils
-import com.aihub.playground.vision.YoloxDetector
+import com.aihub.playground.vision.VisionTask
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -31,20 +30,24 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * P1 縦貫通: モデル DL → YOLOX(LiteRT+QNN)init → CameraX フレーム解析で検出 → OverlayView。
+ * 推論画面。ギャラリーから渡された [EXTRA_MODEL_ID] のモデルでカメラライブビュー推論する。
+ * カテゴリ(検出/分類/セグ/超解像/深度)は VisionTask が吸収する。
  */
 class MainActivity : AppCompatActivity() {
+
+    companion object { const val EXTRA_MODEL_ID = "model_id" }
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var analysisExecutor: ExecutorService
 
-    @Volatile private var detector: YoloxDetector? = null
+    @Volatile private var task: VisionTask? = null
     private val inferBusy = AtomicBoolean(false)
 
     private var frameCount = 0
     private var fpsWindowStart = 0L
     private var lastFps = 0.0
     @Volatile private var lastLatencyMs = 0L
+    private lateinit var entry: CatalogEntry
 
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -56,40 +59,39 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        // カメラライブビュー中は画面を消さない
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         analysisExecutor = Executors.newSingleThreadExecutor()
 
-        val entry = ModelCatalog.load(this).firstOrNull { it.type == TaskType.DETECTION }
-        if (entry == null) {
-            binding.statusText.text = "検出モデルがカタログにありません"
+        val id = intent.getStringExtra(EXTRA_MODEL_ID)
+        val found = ModelCatalog.load(this).firstOrNull { it.id == id }
+        if (found == null) {
+            binding.statusText.text = "モデルが見つかりません: $id"
             return
         }
-        prepareModel(entry)
+        entry = found
+        binding.titleText.text = "${entry.category ?: entry.type.name} ・ ${entry.displayName}"
+        binding.backButton.setOnClickListener { finish() }
+
+        prepareModel()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             == PackageManager.PERMISSION_GRANTED
         ) startCamera() else requestCameraPermission.launch(Manifest.permission.CAMERA)
     }
 
-    /** モデルをダウンロード(必要時)して detector を初期化する。 */
-    private fun prepareModel(entry: CatalogEntry) {
+    private fun prepareModel() {
         lifecycleScope.launch {
             try {
-                setStatus("モデル準備中: ${entry.displayName}")
-                val resolved = ModelDownloader.ensure(this@MainActivity, entry) { p ->
-                    val msg = if (p < 0) "ダウンロード中…" else "ダウンロード中 ${(p * 100).toInt()}%"
-                    runOnUiThread { setStatus(msg) }
-                }
                 setStatus("推論エンジン初期化中…")
-                val det = withContext(Dispatchers.Default) {
-                    YoloxDetector.create(this@MainActivity, resolved.modelFile, resolved.labelsFile)
+                val resolved = ModelDownloader.resolve(this@MainActivity, entry)
+                val t = withContext(Dispatchers.Default) {
+                    VisionTask.create(this@MainActivity, entry, resolved.modelFile, resolved.labelsFile)
                 }
-                detector = det
-                setStatus("準備完了 / backend: ${det.backend}")
-            } catch (t: Throwable) {
-                Log.e("MainActivity", "モデル準備失敗", t)
-                setStatus("モデル準備失敗: ${t.message}")
+                task = t
+                setStatus("backend: ${t.backend}")
+            } catch (e: Throwable) {
+                Log.e("MainActivity", "初期化失敗", e)
+                setStatus("初期化失敗: ${e.message}")
             }
         }
     }
@@ -106,50 +108,43 @@ class MainActivity : AppCompatActivity() {
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .build()
                 .also { it.setAnalyzer(analysisExecutor) { image -> analyzeFrame(image) } }
-
             provider.unbindAll()
             provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
         }, ContextCompat.getMainExecutor(this))
     }
 
     private fun analyzeFrame(image: ImageProxy) {
-        val det = detector
-        if (det == null || !inferBusy.compareAndSet(false, true)) {
-            image.close()
-            updateFps(image.width, image.height, ready = det != null)
-            return
+        val t = task
+        if (t == null || !inferBusy.compareAndSet(false, true)) {
+            image.close(); updateFps(); return
         }
         try {
             val t0 = SystemClock.elapsedRealtime()
             val upright = ImageUtils.toUprightBitmap(image)
-            val results = det.detect(upright)
+            val result = t.run(upright)
             lastLatencyMs = SystemClock.elapsedRealtime() - t0
-            val fw = upright.width
-            val fh = upright.height
-            runOnUiThread { binding.overlayView.setResults(results, fw, fh) }
+            runOnUiThread { binding.overlayView.setResult(result) }
             upright.recycle()
-        } catch (t: Throwable) {
-            Log.e("MainActivity", "推論エラー", t)
+        } catch (e: Throwable) {
+            Log.e("MainActivity", "推論エラー", e)
         } finally {
             image.close()
             inferBusy.set(false)
         }
-        updateFps(image.width, image.height, ready = true)
+        updateFps()
     }
 
-    private fun updateFps(w: Int, h: Int, ready: Boolean) {
+    private fun updateFps() {
         frameCount++
         val now = SystemClock.elapsedRealtime()
         if (fpsWindowStart == 0L) fpsWindowStart = now
         val elapsed = now - fpsWindowStart
         if (elapsed >= 1000) {
             lastFps = frameCount * 1000.0 / elapsed
-            frameCount = 0
-            fpsWindowStart = now
-            val backend = detector?.backend ?: "loading"
+            frameCount = 0; fpsWindowStart = now
+            val backend = task?.backend ?: "loading"
             runOnUiThread {
-                binding.statusText.text =
-                    "%.1f fps / infer %dms / %s".format(lastFps, lastLatencyMs, backend)
+                binding.statusText.text = "%.1f fps / infer %dms / %s".format(lastFps, lastLatencyMs, backend)
             }
         }
     }
@@ -157,10 +152,8 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         analysisExecutor.shutdown()
-        detector?.close()
+        task?.close()
     }
 
-    private fun setStatus(text: String) {
-        runOnUiThread { binding.statusText.text = text }
-    }
+    private fun setStatus(text: String) { runOnUiThread { binding.statusText.text = text } }
 }

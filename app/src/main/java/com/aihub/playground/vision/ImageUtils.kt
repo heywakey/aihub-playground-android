@@ -62,6 +62,23 @@ object ImageUtils {
         return LetterboxResult(out, scale, padX, padY)
     }
 
+    /** 中央の最大正方形を切り出し [size]x[size] に縮小する。返り値の [CropResult] は逆変換用。 */
+    data class CropResult(val bitmap: Bitmap, val srcLeft: Int, val srcTop: Int, val srcSide: Int)
+
+    fun centerCropSquare(src: Bitmap, size: Int): CropResult {
+        val side = minOf(src.width, src.height)
+        val left = (src.width - side) / 2
+        val top = (src.height - side) / 2
+        val square = Bitmap.createBitmap(src, left, top, side, side)
+        val scaled = Bitmap.createScaledBitmap(square, size, size, true)
+        if (scaled != square) square.recycle()
+        return CropResult(scaled, left, top, side)
+    }
+
+    /** フレーム全体を [size]x[size] に伸長(アスペクト無視)。full-frame→full-frame マップ用。 */
+    fun resizeStretch(src: Bitmap, size: Int): Bitmap =
+        Bitmap.createScaledBitmap(src, size, size, true)
+
     /**
      * ARGB_8888 Bitmap を、モデル入力用の uint8 RGB バッファ([1,size,size,3])に詰める。
      * バッファは呼び出し側で確保・再利用する(GC 削減)。

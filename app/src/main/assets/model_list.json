@@ -1,8 +1,9 @@
 [
   {
-    "_note": "P1 の縦貫通ターゲット。AI Hub コンパイル済み YOLOX INT8。元モデルは Apache-2.0 (Megvii YOLOX)。配布は HF リポの release_assets.json が指す S3 zip。出力は box decode 済み(boxes[1,8400,4] / scores[1,8400] / class_idx[1,8400])なので後処理は閾値+NMS のみ。",
+    "_note": "物体検出。出力は box decode 済み(boxes[1,8400,4]/scores/class_idx)。後処理は閾値+NMS のみ。",
     "id": "yolox-w8a8",
-    "displayName": "YOLOX (Object Detection, INT8)",
+    "displayName": "YOLOX",
+    "category": "物体検出",
     "modelName": "qualcomm/Yolo-X",
     "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/yolox/releases/v0.57.1/yolox-tflite-w8a8.zip",
     "modelFile": "yolox-tflite-w8a8/yolox.tflite",
@@ -10,6 +11,60 @@
     "type": "detection",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [640, 640], "norm": "0-255" }
+    "input": { "size": [640, 640], "norm": "0-1" }
+  },
+  {
+    "_note": "画像分類。出力 class_logits[1,1000] uint8(scale0.17 zp63)。dequant→softmax→top5。ラベルは ImageNet 1000。",
+    "id": "mobilenet-v2-w8a8",
+    "displayName": "MobileNet-v2",
+    "category": "画像分類",
+    "modelName": "qualcomm/MobileNet-v2",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/mobilenet_v2/releases/v0.57.1/mobilenet_v2-tflite-w8a8.zip",
+    "modelFile": "mobilenet_v2-tflite-w8a8/mobilenet_v2.tflite",
+    "labelsFile": "mobilenet_v2-tflite-w8a8/labels.txt",
+    "type": "classification",
+    "runtime": "litert_qnn",
+    "license": "Apache-2.0",
+    "input": { "size": [224, 224], "norm": "0-1" }
+  },
+  {
+    "_note": "セマンティックセグメンテーション(VOC 21クラス)。出力 mask[1,520,520] uint8 = 画素ごとのクラスID(量子化なし)。",
+    "id": "deeplabv3-mobilenet-w8a8",
+    "displayName": "DeepLabV3+ MobileNet",
+    "category": "セグメンテーション",
+    "modelName": "qualcomm/DeepLabV3-Plus-MobileNet",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/deeplabv3_plus_mobilenet/releases/v0.57.1/deeplabv3_plus_mobilenet-tflite-w8a8.zip",
+    "modelFile": "deeplabv3_plus_mobilenet-tflite-w8a8/deeplabv3_plus_mobilenet.tflite",
+    "labelsFile": "deeplabv3_plus_mobilenet-tflite-w8a8/labels.txt",
+    "type": "segmentation",
+    "runtime": "litert_qnn",
+    "license": "Apache-2.0",
+    "input": { "size": [520, 520], "norm": "0-1" }
+  },
+  {
+    "_note": "超解像 4x。入力 128x128 → 出力 512x512x3 uint8(scale 1/255)。中央クロップを拡大してインセット表示。",
+    "id": "xlsr-w8a8",
+    "displayName": "XLSR (Super Resolution)",
+    "category": "超解像",
+    "modelName": "qualcomm/XLSR",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/xlsr/releases/v0.57.1/xlsr-tflite-w8a8.zip",
+    "modelFile": "xlsr-tflite-w8a8/xlsr.tflite",
+    "type": "superres",
+    "runtime": "litert_qnn",
+    "license": "Apache-2.0",
+    "input": { "size": [128, 128], "norm": "0-1" }
+  },
+  {
+    "_note": "単眼深度推定(MiDaS)。入力 256x256(入力 scale 0.00487 zp24, 要再量子化)。出力 depth[1,256,256,1] uint8。相対深度なので min-max 正規化してカラーマップ。",
+    "id": "midas-v2-w8a8",
+    "displayName": "MiDaS v2 (Depth)",
+    "category": "深度推定",
+    "modelName": "qualcomm/Midas-V2",
+    "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/midas/releases/v0.57.1/midas-tflite-w8a8.zip",
+    "modelFile": "midas-tflite-w8a8/midas.tflite",
+    "type": "depth",
+    "runtime": "litert_qnn",
+    "license": "MIT",
+    "input": { "size": [256, 256], "norm": "0-1" }
   }
 ]
