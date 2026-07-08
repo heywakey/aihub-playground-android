@@ -1,0 +1,29 @@
+# ツールチェーン(scripts/setup.sh が再取得)
+android-sdk/
+gradle-9.1.0/
+gradle.zip
+jdk17/
+jdk17.tar.gz
+jdk17.tmp/
+
+# ビルド生成物
+app/build/
+app/.gradle/
+app/.kotlin/
+app/local.properties
+build/
+dist/
+
+# ログ
+logs/
+
+# 署名鍵(絶対にコミットしない — 漏れると偽APKに署名される)
+release-keys/
+*.jks
+*.keystore
+STOREPASS.txt
+
+# OS / editor
+.DS_Store
+*.iml
+.idea/

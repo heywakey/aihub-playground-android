@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AI Hub Playground</string>
+    <string name="camera_permission_rationale">カメラ権限がないとライブビューを表示できません</string>
+</resources>
