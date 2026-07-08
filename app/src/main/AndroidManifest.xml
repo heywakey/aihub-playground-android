@@ -17,6 +17,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AIHubPlayground">
+
+        <!-- QNN HTP(Hexagon NPU)delegate は DSP RPC 用の vendor ライブラリを
+             dlopen する。Android 12+ ではここで宣言しないとアプリから参照できない。 -->
+        <uses-native-library android:name="libcdsprpc.so" android:required="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
