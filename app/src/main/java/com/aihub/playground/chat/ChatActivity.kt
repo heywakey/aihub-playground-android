@@ -513,7 +513,8 @@ class ChatActivity : FragmentActivity() {
     private fun setListeners() {
 
         btnAddImage.setOnClickListener {
-            openGallery()
+            // カメラ(アプリ内ライブ撮影)/ 写真(ギャラリー)の選択メニューを出す
+            showPopupMenu(it)
         }
 
         btnClearHistory.setOnClickListener {
@@ -963,6 +964,12 @@ class ChatActivity : FragmentActivity() {
             photoFile?.let {
                 bitmap = BitmapFactory.decodeFile(it.absolutePath)
             }
+        } else if (requestCode == 1002 && resultCode == Activity.RESULT_OK) {
+            // アプリ内ライブ撮影(CaptureActivity)が返す JPEG パスを取り込む
+            data?.getStringExtra(CaptureActivity.EXTRA_PHOTO_PATH)?.let { path ->
+                bitmap = BitmapFactory.decodeFile(path)
+                File(path).delete()
+            }
         }
 
         bitmap?.let {
@@ -1089,20 +1096,9 @@ class ChatActivity : FragmentActivity() {
     }
 
     private fun openCamera() {
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        photoFile = File(
-            getExternalFilesDir(Environment.DIRECTORY_PICTURES),
-            "photo_${System.currentTimeMillis()}.jpg"
-        )
-        photoUri = FileProvider.getUriForFile(
-            this,
-            "${applicationContext.packageName}.fileprovider",
-            photoFile!!
-        )
-
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
-        intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-        startActivityForResult(intent, 1001)
+        // 端末カメラアプリではなくアプリ内ライブ撮影(CaptureActivity)を使う。
+        // チャットを離れず、撮影した JPEG のパスを結果で受け取り VLM に添付する。
+        startActivityForResult(Intent(this, CaptureActivity::class.java), 1002)
     }
 
     private fun clearImages() {

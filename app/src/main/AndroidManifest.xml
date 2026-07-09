@@ -49,6 +49,13 @@
             android:theme="@style/Theme.AIHubChat"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- アプリ内ライブ撮影(CameraX)。チャットを離れず撮影→VLM 添付 -->
+        <activity
+            android:name=".chat.CaptureActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AIHubPlayground" />
+
         <!-- 画像添付の一時ファイル共有(カメラ撮影パス用。現状はギャラリー選択) -->
         <provider
             android:name="androidx.core.content.FileProvider"
