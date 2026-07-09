@@ -20,12 +20,14 @@ data class CatalogEntry(
     val category: String? = null,
     /** 出自の HuggingFace リポジトリ名(例: qualcomm/Yolo-X)。表示・出典用 */
     val modelName: String,
-    /** モデル一式 zip の直接ダウンロード URL */
-    val downloadUrl: String,
-    /** zip 内のモデルファイルパス(例: yolox-tflite-w8a8/yolox.tflite) */
-    val modelFile: String,
+    /** モデル一式 zip の直接ダウンロード URL(視覚系のみ。LLM/VLM は GenieX が管理) */
+    val downloadUrl: String? = null,
+    /** zip 内のモデルファイルパス(例: yolox-tflite-w8a8/yolox.tflite。視覚系のみ) */
+    val modelFile: String? = null,
     /** zip 内のラベルファイルパス(検出・分類系のみ) */
     val labelsFile: String? = null,
+    /** アプリ同梱ラベル(assets 相対パス)。zip にラベルが無いモデル用(例: SegFormer の ADE20K) */
+    val labelsAsset: String? = null,
     val type: TaskType,
     val runtime: Runtime,
     val license: String,
@@ -40,6 +42,7 @@ enum class TaskType {
     @SerialName("superres") SUPERRES,
     @SerialName("depth") DEPTH,
     @SerialName("chat") CHAT,
+    @SerialName("vlm") VLM,
 }
 
 @Serializable
@@ -48,6 +51,7 @@ enum class Runtime {
     @SerialName("onnx_qnn") ONNX_QNN,
     @SerialName("genie") GENIE,
     @SerialName("llama_cpp") LLAMA_CPP,
+    @SerialName("qairt") QAIRT,
 }
 
 @Serializable

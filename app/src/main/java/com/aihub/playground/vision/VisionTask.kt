@@ -32,6 +32,18 @@ sealed class VisionResult {
                         val frameW: Int, val frameH: Int) : VisionResult()
 }
 
+/** 領域選択(ROI)対応タスク。フレーム座標の矩形を毎フレーム受け取り、その領域だけ処理する。 */
+interface RoiAware {
+    /** フレーム座標系の処理対象矩形。null なら中央固定。 */
+    var roi: android.graphics.RectF?
+}
+
+/** 検出しきい値を実行時に調整できるタスク。 */
+interface Adjustable {
+    var scoreThreshold: Float
+    var iouThreshold: Float
+}
+
 /** カテゴリ共通の推論タスク。フレーム(上向き Bitmap)を受けて結果を返す。 */
 interface VisionTask : AutoCloseable {
     val backend: String
@@ -41,15 +53,21 @@ interface VisionTask : AutoCloseable {
     companion object {
         fun create(context: Context, entry: CatalogEntry, modelFile: File, labelsFile: File?): VisionTask {
             val engine = LiteRtEngine.create(context, modelFile)
-            val labels = labelsFile?.takeIf { it.exists() }
-                ?.readLines()?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+            val labels = when {
+                entry.labelsAsset != null ->
+                    context.assets.open(entry.labelsAsset).bufferedReader().readLines()
+                        .map { it.trim() }.filter { it.isNotEmpty() }
+                labelsFile?.exists() == true ->
+                    labelsFile.readLines().map { it.trim() }.filter { it.isNotEmpty() }
+                else -> emptyList()
+            }
             return when (entry.type) {
                 TaskType.DETECTION -> DetectionTask(engine, labels, entry.displayName)
                 TaskType.CLASSIFICATION -> ClassificationTask(engine, labels, entry.displayName)
                 TaskType.SEGMENTATION -> SegmentationTask(engine, labels, entry.displayName)
                 TaskType.SUPERRES -> SuperResTask(engine, entry.displayName)
                 TaskType.DEPTH -> DepthTask(engine, entry.displayName)
-                TaskType.CHAT -> error("chat は視覚タスクではない")
+                TaskType.CHAT, TaskType.VLM -> error("チャット/VLM は視覚タスクではない(ChatActivity で扱う)")
             }
         }
     }

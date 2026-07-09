@@ -8,6 +8,8 @@ android {
     namespace 'com.aihub.playground'
     // CameraX 1.6 系が compileSdk 36 以上を要求。targetSdk は 34 のまま
     compileSdk 36
+    // GenieX SDK(AAR)がネイティブ(.so/Rust モデルマネージャ)を同梱するため宣言が必要
+    ndkVersion '27.3.13750724'
 
     defaultConfig {
         applicationId 'com.aihub.playground'
@@ -39,6 +41,18 @@ android {
     // QNN のネイティブライブラリ(NPU 実行に必要)を圧縮せず配置する
     packaging {
         jniLibs.useLegacyPackaging = true
+        // qnn-runtime(2.48, 視覚系で検証済み)と GenieX AAR(QNN 2.45 同梱)で
+        // 一部の QNN .so が重複する。宣言順(qnn-runtime が先)で 2.48 側を採用する。
+        // NPU チャット(QAIRT)がバージョン不整合で動かない場合は要再調整。
+        jniLibs.pickFirsts += [
+            '**/libQnnHtp.so',
+            '**/libQnnHtpPrepare.so',
+            '**/libQnnHtpV79Skel.so',
+            '**/libQnnHtpV79Stub.so',
+            '**/libQnnHtpV81Skel.so',
+            '**/libQnnHtpV81Stub.so',
+            '**/libQnnSystem.so',
+        ]
     }
 }
 
@@ -67,6 +81,23 @@ dependencies {
     implementation 'com.google.ai.edge.litert:litert-support:1.4.2'
 
     // Qualcomm QNN delegate (Hexagon NPU 実行)
-    implementation 'com.qualcomm.qti:qnn-runtime:2.48.0'
-    implementation 'com.qualcomm.qti:qnn-litert-delegate:2.48.0'
+    // GenieX AAR が QNN 2.45 を同梱するため、視覚系も 2.45 に合わせて APK 内の
+    // QNN .so を単一ビルドに統一する(2.48 と混在すると HTP skel/stub が割れて NPU が落ちる)。
+    implementation 'com.qualcomm.qti:qnn-runtime:2.45.0'
+    implementation 'com.qualcomm.qti:qnn-litert-delegate:2.45.0'
+
+    // GenieX Android(LLM/VLM チャット。ネイティブ・Rust モデルマネージャ同梱)
+    implementation 'com.qualcomm.qti:geniex-android:0.3.5'
+
+    // Markwon(チャットのアシスタント応答を Markdown/LaTeX 描画)
+    implementation 'io.noties.markwon:core:4.6.2'
+    implementation 'io.noties.markwon:ext-strikethrough:4.6.2'
+    implementation 'io.noties.markwon:ext-tables:4.6.2'
+    implementation 'io.noties.markwon:linkify:4.6.2'
+    implementation 'io.noties.markwon:ext-latex:4.6.2'
+    implementation 'io.noties.markwon:inline-parser:4.6.2'
+
+    // ステータスバー配色(GenieX チャット画面の没入表示)
+    implementation 'com.geyifeng.immersionbar:immersionbar:3.2.2'
+    implementation 'com.geyifeng.immersionbar:immersionbar-ktx:3.2.2'
 }

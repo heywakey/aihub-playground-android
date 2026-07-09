@@ -11,7 +11,13 @@
     "type": "detection",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [640, 640], "norm": "0-1" }
+    "input": {
+      "size": [
+        640,
+        640
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "画像分類(CNN)。class_logits[1,1000] uint8 → dequant→softmax→top5。ImageNet。",
@@ -25,7 +31,13 @@
     "type": "classification",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [224, 224], "norm": "0-1" }
+    "input": {
+      "size": [
+        224,
+        224
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "画像分類(Transformer)。ViT。class_logits[1,1000] uint8。ClassificationTask にドロップイン。73MB。",
@@ -39,7 +51,13 @@
     "type": "classification",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [224, 224], "norm": "0-1" }
+    "input": {
+      "size": [
+        224,
+        224
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "画像分類(CNN)。ResNet50。class_logits[1,1000] uint8。",
@@ -53,7 +71,13 @@
     "type": "classification",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [224, 224], "norm": "0-1" }
+    "input": {
+      "size": [
+        224,
+        224
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "セグメンテーション(CNN, VOC 21クラス)。出力 mask[1,520,520] uint8 = クラスID直(argmax不要)。",
@@ -67,7 +91,13 @@
     "type": "segmentation",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [520, 520], "norm": "0-1" }
+    "input": {
+      "size": [
+        520,
+        520
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "セグメンテーション(Transformer, ADE20K 150クラス)。出力 class_logits[1,128,128,150] uint8 → 画素ごと argmax。ラベル同梱なし。",
@@ -77,10 +107,17 @@
     "modelName": "qualcomm/Segformer-Base",
     "downloadUrl": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/segformer_base/releases/v0.57.1/segformer_base-tflite-w8a8.zip",
     "modelFile": "segformer_base-tflite-w8a8/segformer_base.tflite",
+    "labelsAsset": "labels/ade20k.txt",
     "type": "segmentation",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [512, 512], "norm": "0-1" }
+    "input": {
+      "size": [
+        512,
+        512
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "超解像 4x(軽量)。128x128 → 512x512x3 uint8。",
@@ -93,7 +130,13 @@
     "type": "superres",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [128, 128], "norm": "0-1" }
+    "input": {
+      "size": [
+        128,
+        128
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "超解像 4x(GAN, 高品質・重め)。Real-ESRGAN。128x128 → 512x512x3 uint8。",
@@ -106,7 +149,13 @@
     "type": "superres",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [128, 128], "norm": "0-1" }
+    "input": {
+      "size": [
+        128,
+        128
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "超解像 4x(中品質)。QuickSRNet Large。128x128 → 512x512x3 uint8。",
@@ -119,7 +168,13 @@
     "type": "superres",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [128, 128], "norm": "0-1" }
+    "input": {
+      "size": [
+        128,
+        128
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "深度推定(CNN)。MiDaS v2。入力 scale 0.00487 zp24。出力 depth[1,256,256,1] uint8。",
@@ -132,7 +187,13 @@
     "type": "depth",
     "runtime": "litert_qnn",
     "license": "MIT",
-    "input": { "size": [256, 256], "norm": "0-1" }
+    "input": {
+      "size": [
+        256,
+        256
+      ],
+      "norm": "0-1"
+    }
   },
   {
     "_note": "深度推定(Transformer, DINOv2ベース)。Depth-Anything V2。float32 モデル(518x518)。87MB。NPU 実行は fp16。",
@@ -145,6 +206,60 @@
     "type": "depth",
     "runtime": "litert_qnn",
     "license": "Apache-2.0",
-    "input": { "size": [518, 518], "norm": "0-1" }
+    "input": {
+      "size": [
+        518,
+        518
+      ],
+      "norm": "0-1"
+    }
+  },
+  {
+    "_note": "VLM(GGUF, llama.cpp)。Qwen3-VL-4B。npu/gpu/cpu 選択可。",
+    "id": "Qwen3-VL-4B-Instruct-GGUF",
+    "displayName": "Qwen3-VL-4B (GGUF)",
+    "category": "マルチモーダル",
+    "modelName": "unsloth/Qwen3-VL-4B-Instruct-GGUF",
+    "type": "vlm",
+    "runtime": "llama_cpp",
+    "hub": "HUGGINGFACE",
+    "quant": "Q4_0",
+    "license": "Apache-2.0"
+  },
+  {
+    "_note": "VLM(GGUF, llama.cpp)。Qwen3-VL-2B。軽量・フォールバック。",
+    "id": "Qwen3-VL-2B-Instruct-GGUF",
+    "displayName": "Qwen3-VL-2B (GGUF)",
+    "category": "マルチモーダル",
+    "modelName": "unsloth/Qwen3-VL-2B-Instruct-GGUF",
+    "type": "vlm",
+    "runtime": "llama_cpp",
+    "hub": "HUGGINGFACE",
+    "quant": "Q4_0",
+    "license": "Apache-2.0"
+  },
+  {
+    "_note": "LLM(GGUF, llama.cpp)。Qwen3-1.7B。CPU/GPU で軽快。",
+    "id": "Qwen3-1.7B-GGUF",
+    "displayName": "Qwen3-1.7B (GGUF)",
+    "category": "言語モデル",
+    "modelName": "unsloth/Qwen3-1.7B-GGUF",
+    "type": "chat",
+    "runtime": "llama_cpp",
+    "hub": "HUGGINGFACE",
+    "quant": "Q4_0",
+    "license": "Apache-2.0"
+  },
+  {
+    "_note": "LLM(GGUF, llama.cpp)。IBM Granite 4.0 micro(~3B)。Apache-2.0。",
+    "id": "granite-4.0-micro-GGUF",
+    "displayName": "Granite 4.0 micro (GGUF)",
+    "category": "言語モデル",
+    "modelName": "ibm-granite/granite-4.0-micro-GGUF",
+    "type": "chat",
+    "runtime": "llama_cpp",
+    "hub": "HUGGINGFACE",
+    "quant": "Q4_0",
+    "license": "Apache-2.0"
   }
 ]

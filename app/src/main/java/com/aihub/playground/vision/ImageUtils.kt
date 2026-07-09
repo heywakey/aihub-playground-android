@@ -80,6 +80,27 @@ object ImageUtils {
         Bitmap.createScaledBitmap(src, size, size, true)
 
     /**
+     * ROI(フレーム座標の矩形)を切り出して [size]x[size] へ縮小する。ROI が null なら中央最大正方形。
+     * ROI は正方に近い前提だが、はみ出しは clamp する(アスペクト無視の伸長でモデル入力に合わせる)。
+     */
+    fun cropRoiSquare(src: Bitmap, roi: android.graphics.RectF?, size: Int): Bitmap {
+        val l: Int; val t: Int; val w: Int; val h: Int
+        if (roi != null) {
+            l = roi.left.toInt().coerceIn(0, src.width - 1)
+            t = roi.top.toInt().coerceIn(0, src.height - 1)
+            w = (roi.width().toInt()).coerceIn(1, src.width - l)
+            h = (roi.height().toInt()).coerceIn(1, src.height - t)
+        } else {
+            val side = minOf(src.width, src.height)
+            l = (src.width - side) / 2; t = (src.height - side) / 2; w = side; h = side
+        }
+        val patch = Bitmap.createBitmap(src, l, t, w, h)
+        val scaled = Bitmap.createScaledBitmap(patch, size, size, true)
+        if (scaled != patch) patch.recycle()
+        return scaled
+    }
+
+    /**
      * ARGB_8888 Bitmap を、モデル入力用の uint8 RGB バッファ([1,size,size,3])に詰める。
      * バッファは呼び出し側で確保・再利用する(GC 削減)。
      */

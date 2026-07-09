@@ -25,14 +25,17 @@ object ModelDownloader {
     fun modelDir(context: Context, entry: CatalogEntry): File =
         File(context.filesDir, "models/${entry.id}")
 
-    /** 既に展開済みか(modelFile が存在するか)。 */
-    fun isReady(context: Context, entry: CatalogEntry): Boolean =
-        File(modelDir(context, entry), entry.modelFile).exists()
+    /** 既に展開済みか(modelFile が存在するか)。視覚系専用(modelFile が無ければ false)。 */
+    fun isReady(context: Context, entry: CatalogEntry): Boolean {
+        val mf = entry.modelFile ?: return false
+        return File(modelDir(context, entry), mf).exists()
+    }
 
     fun resolve(context: Context, entry: CatalogEntry): Resolved {
         val dir = modelDir(context, entry)
+        val mf = requireNotNull(entry.modelFile) { "視覚系モデルには modelFile が必須: ${entry.id}" }
         return Resolved(
-            modelFile = File(dir, entry.modelFile),
+            modelFile = File(dir, mf),
             labelsFile = entry.labelsFile?.let { File(dir, it) },
         )
     }
@@ -53,9 +56,10 @@ object ModelDownloader {
         }
         dir.mkdirs()
 
+        val url = requireNotNull(entry.downloadUrl) { "視覚系モデルには downloadUrl が必須: ${entry.id}" }
         val tmpZip = File(context.cacheDir, "${entry.id}.zip")
         try {
-            download(entry.downloadUrl, tmpZip, onProgress)
+            download(url, tmpZip, onProgress)
             unzip(tmpZip, dir)
         } finally {
             tmpZip.delete()

@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
 import android.view.WindowManager
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -20,7 +21,10 @@ import com.aihub.playground.databinding.ActivityMainBinding
 import com.aihub.playground.model.CatalogEntry
 import com.aihub.playground.model.ModelCatalog
 import com.aihub.playground.model.ModelDownloader
+import com.aihub.playground.model.TaskType
+import com.aihub.playground.vision.Adjustable
 import com.aihub.playground.vision.ImageUtils
+import com.aihub.playground.vision.RoiAware
 import com.aihub.playground.vision.VisionTask
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,6 +53,9 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var lastLatencyMs = 0L
     private lateinit var entry: CatalogEntry
 
+    private var lensFacing = CameraSelector.DEFAULT_BACK_CAMERA
+    @Volatile private var roiTask: RoiAware? = null
+
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) startCamera()
@@ -71,6 +78,15 @@ class MainActivity : AppCompatActivity() {
         entry = found
         binding.titleText.text = "${entry.category ?: entry.type.name} ・ ${entry.displayName}"
         binding.backButton.setOnClickListener { finish() }
+        binding.flipButton.setOnClickListener { toggleCamera() }
+
+        // ROI(領域選択)は超解像/セグ/深度で有効化
+        val roiTypes = setOf(TaskType.SUPERRES, TaskType.SEGMENTATION, TaskType.DEPTH)
+        if (entry.type in roiTypes) {
+            binding.overlayView.roiEnabled = true
+            binding.roiHint.visibility = android.view.View.VISIBLE
+        }
+        if (entry.type == TaskType.DETECTION) setupThresholdPanel()
 
         prepareModel()
 
@@ -92,6 +108,13 @@ class MainActivity : AppCompatActivity() {
                     VisionTask.create(this@MainActivity, entry, resolved.modelFile, resolved.labelsFile)
                 }
                 task = t
+                roiTask = t as? RoiAware
+                (t as? Adjustable)?.let { a ->
+                    runOnUiThread {
+                        a.scoreThreshold = binding.scoreSeek.progress / 100f
+                        a.iouThreshold = binding.iouSeek.progress / 100f
+                    }
+                }
                 setStatus("backend: ${t.backend}")
             } catch (e: Throwable) {
                 Log.e("MainActivity", "初期化失敗", e)
@@ -113,8 +136,35 @@ class MainActivity : AppCompatActivity() {
                 .build()
                 .also { it.setAnalyzer(analysisExecutor) { image -> analyzeFrame(image) } }
             provider.unbindAll()
-            provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+            // フロントカメラはプレビューが左右反転表示されるのでオーバーレイも合わせる
+            binding.overlayView.mirror = lensFacing == CameraSelector.DEFAULT_FRONT_CAMERA
+            provider.bindToLifecycle(this, lensFacing, preview, analysis)
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun toggleCamera() {
+        lensFacing = if (lensFacing == CameraSelector.DEFAULT_BACK_CAMERA)
+            CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
+        startCamera()
+    }
+
+    private fun setupThresholdPanel() {
+        binding.thresholdPanel.visibility = android.view.View.VISIBLE
+        fun sync() {
+            val s = binding.scoreSeek.progress / 100f
+            val i = binding.iouSeek.progress / 100f
+            binding.scoreLabel.text = "スコア閾値 %.2f".format(s)
+            binding.iouLabel.text = "IoU 閾値 %.2f".format(i)
+            (task as? Adjustable)?.let { it.scoreThreshold = s; it.iouThreshold = i }
+        }
+        val listener = object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) = sync()
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        }
+        binding.scoreSeek.setOnSeekBarChangeListener(listener)
+        binding.iouSeek.setOnSeekBarChangeListener(listener)
+        sync()
     }
 
     private fun analyzeFrame(image: ImageProxy) {
@@ -125,6 +175,7 @@ class MainActivity : AppCompatActivity() {
         try {
             val t0 = SystemClock.elapsedRealtime()
             val upright = ImageUtils.toUprightBitmap(image)
+            roiTask?.roi = binding.overlayView.frameRoi(upright.width, upright.height)
             val result = t.run(upright)
             lastLatencyMs = SystemClock.elapsedRealtime() - t0
             runOnUiThread { binding.overlayView.setResult(result) }

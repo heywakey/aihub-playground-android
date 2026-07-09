@@ -14,7 +14,9 @@ class SegmentationTask(
     private val engine: LiteRtEngine,
     private val labels: List<String>,
     override val label: String,
-) : VisionTask {
+) : VisionTask, RoiAware {
+
+    @Volatile override var roi: android.graphics.RectF? = null
 
     override val backend get() = engine.backend
     private val interp = engine.interpreter
@@ -36,24 +38,41 @@ class SegmentationTask(
 
     private val palette = vocPalette(maxOf(labels.size, numChannels, 21))
 
+    // 背景として透過するクラス。VOC は index0="BACKGROUND" だが ADE20K は index0="wall" で
+    // 実クラス。ラベル名で判定し、名前が背景系のクラスだけ透過する(名前が無ければ index0 を背景扱い)。
+    private fun isBackground(cls: Int): Boolean {
+        val name = labels.getOrNull(cls)?.lowercase()
+        return if (name != null) name == "background" || name == "unlabeled" || name == "unlabelled"
+        else cls == 0
+    }
+
     override fun run(upright: Bitmap): VisionResult {
-        val square = ImageUtils.resizeStretch(upright, inputSize)
+        // ROI(領域選択)を正方に切り出してモデル入力へ。null なら中央最大正方形(アスペクト無視の
+        // 全画面伸長をやめ、正方クロップにしたので歪まない)。
+        val square = ImageUtils.cropRoiSquare(upright, roi, inputSize)
         engine.fillInput(square, inputBuf, inPixels, lut)
-        if (square != upright) square.recycle()
+        square.recycle()
 
         maskOut.rewind()
         interp.run(inputBuf, maskOut)
         maskOut.rewind()
 
-        val present = HashSet<Int>()
-        for (i in 0 until outH * outW) {
+        val total = outH * outW
+        val counts = HashMap<Int, Int>()
+        for (i in 0 until total) {
             val cls = if (isLogits) argmaxAt(i) else (maskOut.get(i).toInt() and 0xFF)
-            colorPixels[i] = if (cls == 0) Color.TRANSPARENT else {
-                present.add(cls); palette[cls % palette.size]
+            colorPixels[i] = if (isBackground(cls)) Color.TRANSPARENT else {
+                counts[cls] = (counts[cls] ?: 0) + 1; palette[cls % palette.size]
             }
         }
         colored.setPixels(colorPixels, 0, outW, 0, 0, outW, outH)
-        val legend = present.sorted().map { (labels.getOrElse(it) { "class$it" }) to palette[it % palette.size] }
+        // 面積の大きい順に凡例(名前 + 占有率%)。ADE20K は多クラスなので上位のみ。
+        val legend = counts.entries.sortedByDescending { it.value }.take(8)
+            .map { e ->
+                val name = labels.getOrElse(e.key) { "class${e.key}" }
+                val pct = (e.value * 100f / total).toInt()
+                "$name $pct%" to palette[e.key % palette.size]
+            }
         return VisionResult.Segmentation(colored, legend)
     }
 

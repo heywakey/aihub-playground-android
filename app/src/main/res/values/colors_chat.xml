@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- brand -->
+    <color name="accent_cyan">#FF00E5D1</color>
+    <color name="accent_blue">#FF6E8BFF</color>
+    <color name="bg_normal">#FF0A0E14</color>
+    <color name="surface">#FF151C26</color>
+    <color name="surface_2">#FF1B2430</color>
+    <color name="on_surface">#FFE6EDF3</color>
+    <color name="on_surface_dim">#FF9BA7B4</color>
+    <color name="divider">#FF232B36</color>
+    <color name="hint">#FF6B7785</color>
+    <!-- legacy names kept -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="font_black">#FFE6EDF3</color>
+    <color name="teal_200">#FF00E5D1</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+</resources>

@@ -16,9 +16,9 @@ class DetectionTask(
     private val engine: LiteRtEngine,
     private val labels: List<String>,
     override val label: String,
-    private val scoreThreshold: Float = 0.4f,
-    private val iouThreshold: Float = 0.5f,
-) : VisionTask {
+    @Volatile override var scoreThreshold: Float = 0.4f,
+    @Volatile override var iouThreshold: Float = 0.5f,
+) : VisionTask, Adjustable {
 
     private companion object { const val TAG = "DetectionTask"; const val NUM_ANCHORS = 8400 }
 

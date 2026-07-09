@@ -13,7 +13,9 @@ import java.nio.ByteOrder
 class SuperResTask(
     private val engine: LiteRtEngine,
     override val label: String,
-) : VisionTask {
+) : VisionTask, RoiAware {
+
+    @Volatile override var roi: RectF? = null
 
     override val backend get() = engine.backend
     private val interp = engine.interpreter
@@ -31,16 +33,21 @@ class SuperResTask(
     private val outBitmap = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
 
     override fun run(upright: Bitmap): VisionResult {
-        val side = inputSize
-        val left = ((upright.width - side) / 2).coerceAtLeast(0)
-        val top = ((upright.height - side) / 2).coerceAtLeast(0)
-        val cropW = minOf(side, upright.width)
-        val cropH = minOf(side, upright.height)
-        var patch = Bitmap.createBitmap(upright, left, top, cropW, cropH)
-        if (cropW != side || cropH != side) {
-            val scaled = Bitmap.createScaledBitmap(patch, side, side, true)
-            patch.recycle(); patch = scaled
+        // ROI(ドラッグ・ピンチで指定した領域)。null なら従来どおり中央の inputSize 分。
+        val r = roi
+        val srcRect: RectF = if (r != null) {
+            val l = r.left.coerceIn(0f, (upright.width - 1).toFloat())
+            val t = r.top.coerceIn(0f, (upright.height - 1).toFloat())
+            val w = r.width().coerceIn(1f, upright.width - l)
+            val h = r.height().coerceIn(1f, upright.height - t)
+            RectF(l, t, l + w, t + h)
+        } else {
+            val side = minOf(inputSize, upright.width, upright.height).toFloat()
+            val l = ((upright.width - side) / 2f).coerceAtLeast(0f)
+            val t = ((upright.height - side) / 2f).coerceAtLeast(0f)
+            RectF(l, t, l + side, t + side)
         }
+        val patch = ImageUtils.cropRoiSquare(upright, srcRect, inputSize)
         engine.fillInput(patch, inputBuf, inPixels, lut)
         // 同じ入力パッチを出力解像度へ単純(バイリニア)拡大して比較対象にする
         val bilinear = Bitmap.createScaledBitmap(patch, outW, outH, true)
@@ -61,7 +68,6 @@ class SuperResTask(
         }
         outBitmap.setPixels(outPixels, 0, outW, 0, 0, outW, outH)
 
-        val srcRect = RectF(left.toFloat(), top.toFloat(), (left + cropW).toFloat(), (top + cropH).toFloat())
         return VisionResult.SuperRes(outBitmap, bilinear, srcRect, upright.width, upright.height)
     }
 

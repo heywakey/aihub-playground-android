@@ -13,7 +13,9 @@ import java.nio.ByteOrder
 class DepthTask(
     private val engine: LiteRtEngine,
     override val label: String,
-) : VisionTask {
+) : VisionTask, RoiAware {
+
+    @Volatile override var roi: android.graphics.RectF? = null
 
     override val backend get() = engine.backend
     private val interp = engine.interpreter
@@ -35,9 +37,10 @@ class DepthTask(
     private val cmap = turboColormap()
 
     override fun run(upright: Bitmap): VisionResult {
-        val square = ImageUtils.resizeStretch(upright, inputSize)
+        // ROI を正方クロップ(全画面伸長をやめアスペクト維持)。null なら中央最大正方形。
+        val square = ImageUtils.cropRoiSquare(upright, roi, inputSize)
         engine.fillInput(square, inputBuf, inPixels, lut)
-        if (square != upright) square.recycle()
+        square.recycle()
 
         depthOut.rewind()
         interp.run(inputBuf, depthOut)

@@ -44,14 +44,83 @@
             android:textSize="15sp"
             android:textStyle="bold"
             tools:text="物体検出 ・ YOLOX" />
+
+        <ImageButton
+            android:id="@+id/flipButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_camera"
+            android:tint="@android:color/white"
+            android:contentDescription="カメラ切替" />
+    </LinearLayout>
+
+    <!-- ROI 操作ヒント(超解像/セグ/深度) -->
+    <TextView
+        android:id="@+id/roiHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="64dp"
+        android:background="#80000000"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp"
+        android:text="枠をドラッグで移動 ・ ピンチで拡大縮小"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <!-- 検出しきい値パネル(物体検出のみ) -->
+    <LinearLayout
+        android:id="@+id/thresholdPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:background="#99000000"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/scoreLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            tools:text="スコア閾値 0.40" />
+
+        <SeekBar
+            android:id="@+id/scoreSeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="95"
+            android:progress="40" />
+
+        <TextView
+            android:id="@+id/iouLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            tools:text="IoU 閾値 0.50" />
+
+        <SeekBar
+            android:id="@+id/iouSeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="95"
+            android:progress="50" />
     </LinearLayout>
 
     <TextView
         android:id="@+id/statusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_margin="12dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="56dp"
+        android:layout_marginEnd="12dp"
         android:background="#80000000"
         android:padding="6dp"
         android:textColor="@android:color/white"

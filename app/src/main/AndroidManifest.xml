@@ -5,13 +5,17 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- モデルの実行時ダウンロード(HuggingFace) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- チャットモデルの大容量ダウンロード中のスリープ抑止(GenieX モデルマネージャ) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-feature
         android:name="android.hardware.camera.any"
         android:required="true" />
 
     <application
+        android:name=".AiHubApp"
         android:allowBackup="true"
+        android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -36,6 +40,25 @@
             android:name=".MainActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
+
+        <!-- LLM/VLM チャット(GenieX)。ソフトキーボードで入力欄を押し上げる -->
+        <activity
+            android:name=".chat.ChatActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AIHubChat"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- 画像添付の一時ファイル共有(カメラ撮影パス用。現状はギャラリー選択) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

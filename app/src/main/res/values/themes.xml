@@ -2,4 +2,20 @@
     <style name="Theme.AIHubPlayground" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/black</item>
     </style>
+
+    <!-- GenieX チャット画面用(移植)。ダーク基調・Space Grotesk・シアンアクセント -->
+    <style name="Theme.AIHubChat" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:windowBackground">@color/bg_normal</item>
+        <item name="android:colorAccent">@color/accent_cyan</item>
+        <item name="colorPrimary">@color/bg_normal</item>
+        <item name="android:textColorPrimary">@color/on_surface</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:textColorHint">@color/hint</item>
+        <item name="android:statusBarColor">@color/bg_normal</item>
+        <item name="android:navigationBarColor">@color/bg_normal</item>
+    </style>
+
+    <style name="TransparentBottomSheetDialog" parent="Theme.Design.BottomSheetDialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
 </resources>
