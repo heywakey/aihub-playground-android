@@ -10,6 +10,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- タップフォーカスの合焦枠(タップ位置に一瞬表示) -->
+    <View
+        android:id="@+id/focusRing"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:background="@drawable/ic_focus_ring"
+        android:visibility="gone" />
+
     <!-- 上部: 閉じる -->
     <ImageButton
         android:id="@+id/btnClose"
@@ -22,6 +30,19 @@
         android:scaleType="centerInside"
         android:padding="10dp"
         android:contentDescription="閉じる" />
+
+    <!-- 上部: フラッシュ切替(OFF/ON/AUTO) -->
+    <ImageButton
+        android:id="@+id/btnFlash"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/bg_capture_circle"
+        android:src="@drawable/ic_flash_off"
+        android:scaleType="centerInside"
+        android:padding="10dp"
+        android:contentDescription="フラッシュ切替" />
 
     <!-- 下部スクリム -->
     <View
