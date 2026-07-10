@@ -1,0 +1,7 @@
+{
+  "versionCode": 1,
+  "versionName": "0.1",
+  "apkUrl": "https://github.com/heywakey/aihub-playground-android/releases/download/v0.1/aihub-playground-v0.1-1.apk",
+  "notes": "初回リリース。Vision(NPU)+ チャット/VLM(GGUF)+ アプリ内カメラ撮影。",
+  "minSupportedVersionCode": 0
+}

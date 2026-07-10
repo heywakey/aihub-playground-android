@@ -20,7 +20,11 @@ import com.aihub.playground.model.CatalogEntry
 import com.aihub.playground.model.ModelCatalog
 import com.aihub.playground.model.ModelDownloader
 import com.aihub.playground.model.TaskType
+import com.aihub.playground.update.UpdateChecker
 import com.geniex.sdk.ModelManagerWrapper
+import android.content.ActivityNotFoundException
+import android.net.Uri
+import android.widget.Toast
 import kotlinx.coroutines.launch
 
 /**
@@ -85,6 +89,41 @@ class GalleryActivity : AppCompatActivity() {
         findViewById<RecyclerView>(R.id.modelList).apply {
             layoutManager = LinearLayoutManager(this@GalleryActivity)
             adapter = this@GalleryActivity.adapter
+        }
+        checkForUpdate()
+    }
+
+    /** 起動時に配布サーバの latest.json を確認し、新しい版があればダイアログで促す。 */
+    private var updatePrompted = false
+    private fun checkForUpdate() {
+        if (updatePrompted) return
+        lifecycleScope.launch {
+            val info = UpdateChecker.check(this@GalleryActivity) ?: return@launch
+            if (isFinishing || isDestroyed) return@launch
+            updatePrompted = true
+            val forced = UpdateChecker.isForced(this@GalleryActivity, info)
+            val vname = info.versionName.ifBlank { info.versionCode.toString() }
+            val msg = buildString {
+                append("新しいバージョン v")
+                append(vname)
+                append(" が公開されています。")
+                if (info.notes.isNotBlank()) { append("\n\n"); append(info.notes) }
+            }
+            AlertDialog.Builder(this@GalleryActivity)
+                .setTitle("アップデート")
+                .setMessage(msg)
+                .setCancelable(!forced)
+                .setPositiveButton("ダウンロード") { _, _ -> openApkUrl(info.apkUrl) }
+                .apply { if (!forced) setNegativeButton("後で", null) }
+                .show()
+        }
+    }
+
+    private fun openApkUrl(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, "ブラウザを開けませんでした", Toast.LENGTH_SHORT).show()
         }
     }
 
